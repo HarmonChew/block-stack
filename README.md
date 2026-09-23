@@ -1,4 +1,4 @@
-# project_name
+# Block Stack
 
 A falling-block game and deterministic AI environment inspired by the gameplay of 1989 NES Tetris.
 
