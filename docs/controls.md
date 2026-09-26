@@ -34,6 +34,16 @@ The pause, speed, debug, preview visibility, fullscreen, and palette switches ar
 
 For a visual snapshot from the command line, run `./build/project_name --screenshot capture.bmp --smoke-frames 2` after building the SDL3 target. The screenshot is saved as BMP on the first rendered frame, or at a requested logical replay frame with `--screenshot-frame N`; `--smoke-frames` exits after the requested number of rendered frames. These options do not change the frame rules.
 
+Use `./build/project_name --replay path/to/game.rep --paused` to inspect a replay
+from its initial frame. Press `.` to advance one frame or P to play. This is
+useful for short AI input experiments that would otherwise finish immediately.
+
+When launched by a live AI controller, the desktop displays `LIVE ... AI`.
+P pauses, period advances one frame, brackets change speed, and R starts the
+same seed again. Gameplay buttons are supplied by the controller; Esc or the
+gamepad Back button closes the live session. The board stays visible while
+paused. A frame limit or game over stops the agent and leaves the result visible.
+
 ## Menu and settings
 
 | Key | Menu action |
