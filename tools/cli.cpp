@@ -81,7 +81,8 @@ Options parse(int argc, char** argv, const std::string& tool) {
             const auto value = value_after(i, argc, argv, arg);
             if (value == "endless") options.config.mode = Mode::Endless;
             else if (value == "challenge") options.config.mode = Mode::Challenge;
-            else throw std::invalid_argument("invalid mode: " + value);
+            else throw std::invalid_argument("invalid mode: " + value +
+                                             " (valid modes: endless, challenge)");
         } else if (arg == "--level") options.config.start_level = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 19));
         else if (arg == "--height") options.config.height = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 5));
         else if (arg == "--seed") options.config.seed = static_cast<std::uint16_t>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 65535));

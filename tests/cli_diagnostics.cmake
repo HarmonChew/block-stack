@@ -65,3 +65,50 @@ expect_numeric_ok(--seed 65535)
 expect_numeric_ok(--level 19)
 expect_numeric_ok(--height 5)
 expect_numeric_ok(--pieces 1000000)
+
+function(expect_mode_error value)
+    execute_process(
+        COMMAND "${BLOCKS_CLI}" --mode "${value}"
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE stdout
+        ERROR_VARIABLE stderr
+    )
+    if(result EQUAL 0)
+        message(FATAL_ERROR
+            "--mode ${value}: expected a nonzero exit\nstdout: ${stdout}\nstderr: ${stderr}")
+    endif()
+    string(FIND "${stderr}" "invalid mode: ${value}" found)
+    if(found EQUAL -1)
+        message(FATAL_ERROR
+            "--mode ${value}: stderr missing \"invalid mode: ${value}\"\nstderr: ${stderr}")
+    endif()
+    foreach(name IN ITEMS endless challenge)
+        string(FIND "${stderr}" "${name}" found)
+        if(found EQUAL -1)
+            message(FATAL_ERROR
+                "--mode ${value}: stderr does not list valid mode ${name}\nstderr: ${stderr}")
+        endif()
+    endforeach()
+endfunction()
+
+function(expect_mode_ok value)
+    execute_process(
+        COMMAND "${BLOCKS_CLI}" --mode "${value}" --frames 0
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE stdout
+        ERROR_VARIABLE stderr
+    )
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR
+            "--mode ${value}: expected success, got exit ${result}\nstdout: ${stdout}\nstderr: ${stderr}")
+    endif()
+endfunction()
+
+# Unknown mode names report the value and list the valid mode names.
+expect_mode_error(bogus)
+expect_mode_error(endles)
+expect_mode_error("")
+
+# Documented mode names still parse.
+expect_mode_ok(endless)
+expect_mode_ok(challenge)
