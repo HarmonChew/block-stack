@@ -60,6 +60,9 @@ if(PROJECT_BUILD_TESTS)
     add_executable(blocks_tests tests/core.cpp tests/rng_rules.cpp tests/replay.cpp)
     target_link_libraries(blocks_tests PRIVATE blocks_core)
     add_test(NAME blocks_core COMMAND blocks_tests)
+    add_test(NAME blocks_cli_diagnostics
+        COMMAND ${CMAKE_COMMAND} "-DBLOCKS_CLI=$<TARGET_FILE:project_name_headless>"
+                -P "${CMAKE_SOURCE_DIR}/tests/cli_diagnostics.cmake")
     if(PROJECT_BUILD_APP AND UNIX AND NOT APPLE)
         add_test(NAME blocks_app_keyboard COMMAND project_name --keyboard-smoke)
         set_tests_properties(blocks_app_keyboard PROPERTIES ENVIRONMENT

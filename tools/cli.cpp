@@ -39,14 +39,26 @@ struct Options {
     bool gravity_table = false;
 };
 
-std::string value_after(int& i, int argc, char** argv) {
-    if (++i >= argc) throw std::invalid_argument("missing value after option");
+std::string value_after(int& i, int argc, char** argv, const std::string& option) {
+    if (++i >= argc) throw std::invalid_argument("missing value for option " + option);
     return argv[i];
 }
-std::uint64_t unsigned_arg(const std::string& text, std::uint64_t maximum) {
+std::uint64_t numeric_arg(const std::string& option, const std::string& text,
+                          std::uint64_t minimum, std::uint64_t maximum) {
     std::size_t used = 0;
-    const auto value = std::stoull(text, &used, 0);
-    if (used != text.size() || value > maximum) throw std::invalid_argument("invalid number: " + text);
+    std::uint64_t value = 0;
+    bool parsed = false;
+    try {
+        value = std::stoull(text, &used, 0);
+        parsed = used == text.size();
+    } catch (const std::exception&) {
+        parsed = false;
+    }
+    if (!parsed || value < minimum || value > maximum) {
+        throw std::invalid_argument("invalid value for " + option + ": '" + text +
+                                    "' (expected integer in " + std::to_string(minimum) + ".." +
+                                    std::to_string(maximum) + ")");
+    }
     return value;
 }
 void help(const std::string& tool) {
@@ -64,23 +76,23 @@ Options parse(int argc, char** argv, const std::string& tool) {
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--help" || arg == "-h") { help(tool); std::exit(0); }
-        else if (arg == "--rules") options.config.ruleset = ruleset_from_name(value_after(i, argc, argv));
+        else if (arg == "--rules") options.config.ruleset = ruleset_from_name(value_after(i, argc, argv, arg));
         else if (arg == "--mode") {
-            const auto value = value_after(i, argc, argv);
+            const auto value = value_after(i, argc, argv, arg);
             if (value == "endless") options.config.mode = Mode::Endless;
             else if (value == "challenge") options.config.mode = Mode::Challenge;
             else throw std::invalid_argument("invalid mode: " + value);
-        } else if (arg == "--level") options.config.start_level = static_cast<int>(unsigned_arg(value_after(i, argc, argv), 19));
-        else if (arg == "--height") options.config.height = static_cast<int>(unsigned_arg(value_after(i, argc, argv), 5));
-        else if (arg == "--seed") options.config.seed = static_cast<std::uint16_t>(unsigned_arg(value_after(i, argc, argv), 65535));
-        else if (arg == "--frames") options.frames = unsigned_arg(value_after(i, argc, argv), 1'000'000'000);
-        else if (arg == "--envs") options.envs = static_cast<int>(unsigned_arg(value_after(i, argc, argv), 1'000'000));
-        else if (arg == "--pieces") options.pieces = static_cast<int>(unsigned_arg(value_after(i, argc, argv), 1'000'000));
-        else if (arg == "--input-file") options.input_file = value_after(i, argc, argv);
-        else if (arg == "--replay-out") options.replay_out = value_after(i, argc, argv);
-        else if (arg == "--state-in") options.state_in = value_after(i, argc, argv);
-        else if (arg == "--state-out") options.state_out = value_after(i, argc, argv);
-        else if (arg == "--dump-state") options.dump_state = value_after(i, argc, argv);
+        } else if (arg == "--level") options.config.start_level = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 19));
+        else if (arg == "--height") options.config.height = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 5));
+        else if (arg == "--seed") options.config.seed = static_cast<std::uint16_t>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 65535));
+        else if (arg == "--frames") options.frames = numeric_arg(arg, value_after(i, argc, argv, arg), 0, 1'000'000'000);
+        else if (arg == "--envs") options.envs = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 1, 1'000'000));
+        else if (arg == "--pieces") options.pieces = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 1'000'000));
+        else if (arg == "--input-file") options.input_file = value_after(i, argc, argv, arg);
+        else if (arg == "--replay-out") options.replay_out = value_after(i, argc, argv, arg);
+        else if (arg == "--state-in") options.state_in = value_after(i, argc, argv, arg);
+        else if (arg == "--state-out") options.state_out = value_after(i, argc, argv, arg);
+        else if (arg == "--dump-state") options.dump_state = value_after(i, argc, argv, arg);
         else if (arg == "--final-hash") options.final_hash = true;
         else if (arg == "--verify") options.verify = true;
         else if (arg == "--gravity-table") options.gravity_table = true;
