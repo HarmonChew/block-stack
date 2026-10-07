@@ -52,7 +52,9 @@ RulesetId ruleset_from_name(const std::string& name) {
         value == "extended") {
         return RulesetId::ClassicNtscExtended;
     }
-    throw std::invalid_argument("unknown ruleset: " + name);
+    throw std::invalid_argument("unknown ruleset: " + name + " (valid names: " +
+                                ruleset_name(RulesetId::ClassicNtscStrict) + ", " +
+                                ruleset_name(RulesetId::ClassicNtscExtended) + ")");
 }
 
 const char* ruleset_name(RulesetId id) {
