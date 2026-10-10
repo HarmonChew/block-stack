@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
@@ -24,6 +25,14 @@ constexpr int logical_h = 720;
 constexpr int board_x = 354;
 constexpr int board_y = 107;
 constexpr int cell_size = 25;
+
+std::uint64_t unsigned_value(const std::string& value, std::uint64_t maximum) {
+    std::uint64_t number = 0;
+    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), number);
+    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() || number > maximum)
+        throw std::invalid_argument("invalid unsigned value: " + value);
+    return number;
+}
 
 struct Color { Uint8 r, g, b, a = 255; };
 constexpr Color background{10, 16, 27};
@@ -199,7 +208,8 @@ public:
         if (renderer_) SDL_DestroyRenderer(renderer_);
         if (window_) SDL_DestroyWindow(window_);
     }
-    void load_replay(const std::string& path) {
+    void load_replay(const std::string& path, bool paused = false) {
+        if (controller_mode_) return;
         if (screen_ == Screen::Playing && !replay_mode_) save_replay(true);
         replay_playback_ = Replay::load(path);
         game_ = Game(replay_playback_.config);
@@ -207,8 +217,41 @@ public:
         replay_pos_ = 0;
         visual_board_valid_ = false;
         stats_overlay_ = false;
-        paused_ = false;
+        paused_ = paused;
         screen_ = Screen::Playing;
+    }
+    void start_controller(Config config, std::uint64_t frame_limit, const std::string& label, bool paused) {
+        controller_mode_ = true;
+        controller_config_ = config;
+        controller_frame_limit_ = frame_limit;
+        controller_label_ = label;
+        std::cout << "BLOCK_STACK_CONTROLLER 1\n" << std::flush;
+        start();
+        paused_ = paused;
+    }
+    void set_speed(const std::string& value) {
+        const std::array<std::string, 6> names{{"0.25", "0.5", "1", "2", "4", "8"}};
+        const auto found = std::find(names.begin(), names.end(), value);
+        if (found == names.end()) throw std::invalid_argument("speed must be 0.25, 0.5, 1, 2, 4 or 8");
+        speed_index_ = static_cast<int>(found - names.begin());
+    }
+    void controller_smoke() {
+        if (!controller_mode_) throw std::invalid_argument("--controller-smoke requires --controller-stdio");
+        const auto key = [this](SDL_Scancode code) {
+            SDL_Event event{};
+            event.type = SDL_EVENT_KEY_DOWN;
+            event.key.scancode = code;
+            handle(event);
+        };
+        paused_ = false;
+        key(SDL_SCANCODE_P);
+        if (!paused_ || game_.state().frame != 0) throw std::runtime_error("controller pause failed");
+        key(SDL_SCANCODE_PERIOD);
+        if (game_.state().frame != 1 || !paused_) throw std::runtime_error("controller frame step failed");
+        key(SDL_SCANCODE_R);
+        if (game_.state().frame != 0 || paused_) throw std::runtime_error("controller restart failed");
+        while (running_ && !controller_finished_) step();
+        render();
     }
     void set_screenshot(std::string path, std::uint64_t at_frame = 0) {
         screenshot_path_ = std::move(path);
@@ -251,7 +294,7 @@ public:
             last = now;
             if (screen_ == Screen::Playing && !paused_) accumulator += elapsed * speeds_[speed_index_];
             else accumulator = 0.0;
-            while (accumulator >= ns_per_frame && screen_ == Screen::Playing && !paused_) {
+            while (running_ && accumulator >= ns_per_frame && screen_ == Screen::Playing && !paused_) {
                 step();
                 accumulator -= ns_per_frame;
             }
@@ -259,6 +302,10 @@ public:
             ++rendered;
             if (smoke_frames && rendered >= smoke_frames) break;
             if (!settings_.vsync) SDL_Delay(1);
+        }
+        if (controller_mode_ && !controller_finished_) {
+            controller_snapshot("ABORT");
+            save_replay(true);
         }
         return 0;
     }
@@ -280,6 +327,11 @@ private:
     std::string seed_buffer_;
     std::array<bool, SDL_SCANCODE_COUNT> key_held_{};
     bool replay_mode_ = false;
+    bool controller_mode_ = false;
+    bool controller_finished_ = false;
+    Config controller_config_;
+    std::uint64_t controller_frame_limit_ = 60000;
+    std::string controller_label_ = "LIVE AI";
     bool recording_archived_ = false;
     std::size_t replay_pos_ = 0;
     std::vector<std::filesystem::path> replay_files_;
@@ -311,8 +363,10 @@ private:
         SDL_free(ids);
     }
     void start() {
+        if (controller_mode_ && screen_ == Screen::Playing && !controller_finished_)
+            controller_snapshot("ABORT");
         if (screen_ == Screen::Playing && !replay_mode_) save_replay(true);
-        game_ = Game(make_config());
+        game_ = Game(controller_mode_ ? controller_config_ : make_config());
         recording_ = Replay{};
         recording_.config = game_.config();
         replay_mode_ = false;
@@ -321,6 +375,8 @@ private:
         paused_ = false;
         stats_overlay_ = false;
         screen_ = Screen::Playing;
+        controller_finished_ = false;
+        if (controller_mode_) controller_snapshot("BEGIN");
         sound_.tone(440, 0.07f, 0.3f);
         save_settings(settings_);
     }
@@ -409,7 +465,9 @@ private:
                 if (button == SDL_GAMEPAD_BUTTON_START) paused_ = !paused_;
                 else if (button == SDL_GAMEPAD_BUTTON_NORTH) start();
                 else if (button == SDL_GAMEPAD_BUTTON_BACK) {
-                    save_replay(true); screen_ = Screen::Menu; paused_ = false;
+                    save_replay(true);
+                    if (controller_mode_) running_ = false;
+                    else { screen_ = Screen::Menu; paused_ = false; }
                 } else if (button == SDL_GAMEPAD_BUTTON_WEST) stats_overlay_ = !stats_overlay_;
             } else if (screen_ == Screen::Menu) {
                 if (button == SDL_GAMEPAD_BUTTON_SOUTH) start();
@@ -458,7 +516,11 @@ private:
         if (key == SDL_SCANCODE_ESCAPE) {
             if (screen_ == Screen::Settings) screen_ = Screen::Menu;
             else if (screen_ == Screen::ReplayBrowser) screen_ = Screen::Menu;
-            else if (screen_ == Screen::Playing) { save_replay(true); screen_ = Screen::Menu; paused_ = false; }
+            else if (screen_ == Screen::Playing) {
+                save_replay(true);
+                if (controller_mode_) running_ = false;
+                else { screen_ = Screen::Menu; paused_ = false; }
+            }
             else running_ = false;
             return;
         }
@@ -518,13 +580,32 @@ private:
         }
         return result;
     }
+    void controller_snapshot(const char* kind) const {
+        constexpr char digits[] = "0123456789abcdef";
+        const auto state = game_.save_state();
+        std::string encoded;
+        encoded.reserve(state.size() * 2);
+        for (const auto byte : state) {
+            encoded.push_back(digits[byte >> 4]);
+            encoded.push_back(digits[byte & 15]);
+        }
+        std::cout << kind << ' ' << encoded << '\n' << std::flush;
+        if (!std::cout) throw std::runtime_error("live controller output closed");
+    }
     void step() {
+        if (controller_mode_ && controller_finished_) { paused_ = true; return; }
         if (game_.terminal() && !replay_mode_) return;
         const auto before = game_.state();
         InputFrame input = 0;
         if (replay_mode_) {
             if (replay_pos_ >= replay_playback_.inputs.size()) { paused_ = true; return; }
             input = replay_playback_.inputs[replay_pos_++];
+        } else if (controller_mode_) {
+            controller_snapshot("STATE");
+            std::string response;
+            if (!std::getline(std::cin, response)) { running_ = false; return; }
+            if (!response.empty() && response.back() == '\r') response.pop_back();
+            input = static_cast<InputFrame>(unsigned_value(response, 31));
         } else input = current_input();
         const auto events = game_.tick(input);
         if (events.lines_cleared > 0) {
@@ -548,6 +629,12 @@ private:
         if (events.level_changed) sound_.tone(990, 0.19f, 0.3f);
         if (events.game_over) { sound_.tone(100, 0.36f, 0.2f); save_replay(true); stats_overlay_ = true; }
         if (events.challenge_completed) { sound_.tone(840, 0.36f, 0.6f); save_replay(true); stats_overlay_ = true; }
+        if (controller_mode_ && (game_.terminal() || game_.state().frame >= controller_frame_limit_)) {
+            controller_finished_ = true;
+            paused_ = true;
+            save_replay(true);
+            controller_snapshot("END");
+        }
     }
     Color piece_color(int piece) const {
         if (piece < 1 || piece > 7) return muted;
@@ -643,8 +730,11 @@ private:
         text(renderer_, 682, 456, "F1 DEBUG  TAB STATS", muted, 1);
         text(renderer_, 682, 475, "[ ] SPEED   . STEP", muted, 1);
         text(renderer_, 682, 494, "F5 SAVE REPLAY", muted, 1);
-        text(renderer_, 682, 513, "ESC MENU", muted, 1);
-        text(renderer_, 682, 551, replay_mode_ ? "REPLAY PLAYBACK" : "LIVE CONTROLLER", accent, 1);
+        text(renderer_, 682, 513, controller_mode_ ? "ESC QUIT" : "ESC MENU", muted, 1);
+        text(renderer_, 682, 551, controller_mode_ ? controller_label_ : replay_mode_ ?
+            (paused_ ? "REPLAY PAUSED - P / ." : "REPLAY PLAYBACK") : "LIVE CONTROLLER", accent, 1);
+        if (controller_mode_ && paused_)
+            text(renderer_, 682, 573, controller_finished_ ? "FINISHED - R RESTART" : "PAUSED - P / .", accent, 1);
         text(renderer_, 45, 647, "ONE FRAME = ONE TICK   /   RENDER SPEED DOES NOT CHANGE PHYSICS", muted, 1);
     }
     void overlay(const std::string& title, const std::string& subtitle) const {
@@ -760,7 +850,7 @@ private:
         else {
             board(); hud();
             if (stats_overlay_) render_stats();
-            else if (paused_) overlay("PAUSED", replay_mode_ ? "REPLAY FRAME STEP" : "FRAME STEP READY");
+            else if (paused_ && !replay_mode_ && !controller_mode_) overlay("PAUSED", "FRAME STEP READY");
             else if (game_.state().phase == Phase::GameOver) overlay("GAME OVER", "REPLAY SAVED TO CONFIG");
             else if (game_.state().phase == Phase::ChallengeComplete) overlay("CHALLENGE COMPLETE", "25 LINES CLEARED");
             if (debug_) render_debug();
@@ -791,9 +881,39 @@ int main(int argc, char** argv) {
         std::uint64_t screenshot_frame = 0;
         bool keyboard_smoke = false;
         bool browser_smoke = false;
+        bool replay_paused = false;
+        bool controller = false;
+        bool controller_smoke = false;
+        bool controller_options = false;
+        Config controller_config;
+        std::uint64_t frame_limit = 60000;
+        std::string controller_label = "LIVE AI";
+        std::string speed = "1";
+        const auto value_after = [&](int& index) -> std::string {
+            if (++index >= argc) throw std::invalid_argument("missing option value");
+            return argv[index];
+        };
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
+            if (arg == "--controller-smoke" || arg == "--controller-label" || arg == "--rules" ||
+                arg == "--mode" || arg == "--level" || arg == "--height" || arg == "--seed" || arg == "--frames")
+                controller_options = true;
             if (arg == "--replay" && i + 1 < argc) replay_path = argv[++i];
+            else if (arg == "--paused") replay_paused = true;
+            else if (arg == "--controller-stdio") controller = true;
+            else if (arg == "--controller-smoke") controller_smoke = true;
+            else if (arg == "--controller-label") controller_label = value_after(i);
+            else if (arg == "--rules") controller_config.ruleset = ruleset_from_name(value_after(i));
+            else if (arg == "--mode") {
+                const auto mode = value_after(i);
+                if (mode != "endless" && mode != "challenge") throw std::invalid_argument("invalid mode");
+                controller_config.mode = mode == "endless" ? Mode::Endless : Mode::Challenge;
+            }
+            else if (arg == "--level") controller_config.start_level = static_cast<int>(unsigned_value(value_after(i), 19));
+            else if (arg == "--height") controller_config.height = static_cast<int>(unsigned_value(value_after(i), 5));
+            else if (arg == "--seed") controller_config.seed = static_cast<std::uint16_t>(unsigned_value(value_after(i), 65535));
+            else if (arg == "--frames") frame_limit = unsigned_value(value_after(i), 1'000'000'000);
+            else if (arg == "--speed") speed = value_after(i);
             else if (arg == "--smoke-frames" && i + 1 < argc) smoke_frames = std::stoull(argv[++i]);
             else if (arg == "--screenshot" && i + 1 < argc) screenshot_path = argv[++i];
             else if (arg == "--screenshot-frame" && i + 1 < argc) screenshot_frame = std::stoull(argv[++i]);
@@ -801,10 +921,20 @@ int main(int argc, char** argv) {
             else if (arg == "--browser-smoke") browser_smoke = true;
             else throw std::invalid_argument("unknown option: " + arg);
         }
+        if (replay_paused && replay_path.empty() && !controller)
+            throw std::invalid_argument("--paused requires --replay FILE or --controller-stdio");
+        if (controller && (!replay_path.empty() || keyboard_smoke || browser_smoke))
+            throw std::invalid_argument("live controller cannot be combined with replay or other smoke modes");
+        if (controller_options && !controller)
+            throw std::invalid_argument("controller configuration requires --controller-stdio");
+        if (frame_limit == 0 || controller_label.empty() || controller_label.size() > 32)
+            throw std::invalid_argument("positive frame limit and controller label of 1..32 characters required");
         int result = 0;
         {
             App app;
-            if (!replay_path.empty()) app.load_replay(replay_path);
+            app.set_speed(speed);
+            if (controller) app.start_controller(controller_config, frame_limit, controller_label, replay_paused);
+            if (!replay_path.empty()) app.load_replay(replay_path, replay_paused);
             if (!screenshot_path.empty()) app.set_screenshot(screenshot_path, screenshot_frame);
             if (keyboard_smoke) app.keyboard_smoke();
             if (browser_smoke) {
@@ -814,7 +944,8 @@ int main(int argc, char** argv) {
                 event.key.key = SDLK_F7;
                 SDL_PushEvent(&event);
             }
-            result = keyboard_smoke ? 0 : app.run(smoke_frames);
+            if (controller_smoke) app.controller_smoke();
+            result = keyboard_smoke || controller_smoke ? 0 : app.run(smoke_frames);
         }
         SDL_Quit();
         return result;
