@@ -35,8 +35,6 @@ struct Options {
     std::string dump_state;
     std::string trace_file;
     bool final_hash = false;
-    bool verify = false;
-    bool gravity_table = false;
 };
 
 std::string value_after(int& i, int argc, char** argv, const std::string& option) {
@@ -67,8 +65,8 @@ void help(const std::string& tool) {
               << "         --mode endless|challenge --level 0..19 --height 0..5\n"
               << "         --seed 0..65535 --frames N --input-file INPUTS.bin\n"
               << "         --state-in FILE --state-out FILE --dump-state FILE\n"
-              << "         --replay-out FILE --final-hash --verify\n"
-              << "Benchmark: --envs N; RNG: --pieces N; info: --gravity-table\n";
+              << "         --replay-out FILE --final-hash\n"
+              << "Benchmark: --envs N; RNG: --pieces N\n";
 }
 Options parse(int argc, char** argv, const std::string& tool) {
     Options options;
@@ -95,8 +93,6 @@ Options parse(int argc, char** argv, const std::string& tool) {
         else if (arg == "--state-out") options.state_out = value_after(i, argc, argv, arg);
         else if (arg == "--dump-state") options.dump_state = value_after(i, argc, argv, arg);
         else if (arg == "--final-hash") options.final_hash = true;
-        else if (arg == "--verify") options.verify = true;
-        else if (arg == "--gravity-table") options.gravity_table = true;
         else if (!arg.empty() && arg[0] != '-' && !positional_taken) {
             positional_taken = true;
             if (tool == "verify") options.trace_file = arg;
