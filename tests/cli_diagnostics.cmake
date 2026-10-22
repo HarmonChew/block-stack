@@ -182,3 +182,26 @@ expect_mode_error("")
 # Documented mode names still parse.
 expect_mode_ok(endless)
 expect_mode_ok(challenge)
+
+# Input bytes must fit the 7-bit controller mask. Report the 1-based byte
+# position and its value instead of silently accepting or truncating bit 7.
+set(path "${CMAKE_CURRENT_BINARY_DIR}/invalid_input_byte_0x80.bin")
+string(ASCII 128 c)
+file(WRITE "${path}" "${c}")
+execute_process(
+    COMMAND "${BLOCKS_CLI}" --input-file "${path}" --frames 1
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE stdout
+    ERROR_VARIABLE stderr
+)
+file(REMOVE "${path}")
+if(result EQUAL 0)
+    message(FATAL_ERROR
+        "--input-file byte 0x80: expected a nonzero exit\nstdout: ${stdout}\nstderr: ${stderr}")
+endif()
+set(expected "invalid --input-file byte 1 (0x80): expected a 7-bit controller mask 0..127")
+string(FIND "${stderr}" "${expected}" found)
+if(found EQUAL -1)
+    message(FATAL_ERROR
+        "--input-file byte 0x80: stderr missing \"${expected}\"\nstderr: ${stderr}")
+endif()
