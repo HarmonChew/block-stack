@@ -139,6 +139,15 @@ int run_headless(const Options& options) {
     Game game(options.config);
     if (!options.state_in.empty()) game.load_state(read_binary(options.state_in));
     const auto inputs = options.input_file.empty() ? std::vector<std::uint8_t>{} : read_binary(options.input_file);
+    for (std::size_t i = 0; i < inputs.size(); ++i) {
+        if (inputs[i] > 0x7f) {
+            std::ostringstream message;
+            message << "invalid --input-file byte " << (i + 1) << " (0x" << std::hex
+                    << std::setw(2) << std::setfill('0') << static_cast<unsigned>(inputs[i])
+                    << "): expected a 7-bit controller mask 0..127";
+            throw std::invalid_argument(message.str());
+        }
+    }
     Replay replay;
     replay.config = options.config;
     if (!options.replay_out.empty() && !options.state_in.empty())
