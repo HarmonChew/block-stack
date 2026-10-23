@@ -62,6 +62,7 @@ if(PROJECT_BUILD_TESTS)
     add_test(NAME blocks_core COMMAND blocks_tests)
     add_test(NAME blocks_cli_diagnostics
         COMMAND ${CMAKE_COMMAND} "-DBLOCKS_CLI=$<TARGET_FILE:project_name_headless>"
+                "-DBLOCKS_VERIFY=$<TARGET_FILE:project_name_verify>"
                 -P "${CMAKE_SOURCE_DIR}/tests/cli_diagnostics.cmake")
     if(PROJECT_BUILD_APP AND UNIX AND NOT APPLE)
         add_test(NAME blocks_app_keyboard COMMAND project_name --keyboard-smoke)

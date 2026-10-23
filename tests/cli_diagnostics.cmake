@@ -10,6 +10,9 @@
 if(NOT DEFINED BLOCKS_CLI)
     message(FATAL_ERROR "BLOCKS_CLI (path to project_name_headless) is required")
 endif()
+if(NOT DEFINED BLOCKS_VERIFY)
+    message(FATAL_ERROR "BLOCKS_VERIFY (path to project_name_verify) is required")
+endif()
 
 function(expect_numeric_error option value range)
     execute_process(
@@ -205,3 +208,21 @@ if(found EQUAL -1)
     message(FATAL_ERROR
         "--input-file byte 0x80: stderr missing \"${expected}\"\nstderr: ${stderr}")
 endif()
+
+# Trace values must be complete JSON; malformed fields name the 1-based line and field.
+function(expect_verify_error name content line field)
+    set(path "${CMAKE_CURRENT_BINARY_DIR}/${name}.jsonl")
+    file(WRITE "${path}" "${content}\n")
+    execute_process(COMMAND "${BLOCKS_VERIFY}" "${path}" RESULT_VARIABLE result
+                    OUTPUT_VARIABLE stdout ERROR_VARIABLE stderr)
+    file(REMOVE "${path}")
+    string(FIND "${stderr}" "trace line ${line} field \"${field}\"" found)
+    if(result EQUAL 0 OR found EQUAL -1)
+        message(FATAL_ERROR "${name}: expected line/field error\nstdout: ${stdout}\nstderr: ${stderr}")
+    endif()
+endfunction()
+
+expect_verify_error(fractional_input "{\"input\": 1.5}" 1 input)
+expect_verify_error(trailing_garbage_input "{\"input\": 1abc}" 1 input)
+expect_verify_error(string_frame "{\"input\": 0, \"frame\": \"1\"}" 1 frame)
+expect_verify_error(overflowing_frame "{\"input\": 0, \"frame\": 99999999999999999999999999}" 1 frame)
