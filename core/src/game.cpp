@@ -102,6 +102,9 @@ void validate_state(const State& state) {
         !valid_piece(state.previous_piece)) {
         throw std::invalid_argument("invalid state piece");
     }
+    if (state.next == Piece::None) {
+        throw std::invalid_argument("state has no next piece");
+    }
     if (static_cast<unsigned>(state.phase) > static_cast<unsigned>(Phase::ChallengeComplete)) {
         throw std::invalid_argument("invalid game phase");
     }

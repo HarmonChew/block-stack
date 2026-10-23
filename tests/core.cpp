@@ -423,6 +423,34 @@ void test_top_out_and_serialization() {
           "debug dump missing frame");
 }
 
+void test_missing_next_piece() {
+    Game game({.start_level = 0});
+    auto state = active_state(game);
+    state.next = Piece::None;
+    expect_invalid([&] { game.set_state(state); },
+                   "state with missing next piece accepted");
+
+    Game source({.start_level = 0});
+    auto patched = source.save_state();
+    // Fixed-size prefix before the next-piece field: magic, version, ruleset,
+    // mode, start level, height, seed, board, hidden rows, and current piece.
+    constexpr std::size_t next_offset = 8 + 8 + 8 + 8 + 8 + 8 + 8 +
+        board_width * board_height + board_width * 2 + 8;
+    check(patched.size() > next_offset + 8, "saved state too short");
+    check(source.state().next != Piece::None, "fixture has no next piece");
+    check(patched[next_offset] == static_cast<std::uint8_t>(source.state().next),
+          "next piece snapshot offset");
+    for (int i = 1; i < 8; ++i) {
+        check(patched[next_offset + i] == 0, "next piece snapshot padding");
+    }
+    for (int i = 0; i < 8; ++i) {
+        patched[next_offset + i] = i == 0 ? 7 : 0;
+    }
+    Game target;
+    expect_invalid([&] { target.load_state(patched); },
+                   "snapshot with missing next piece accepted");
+}
+
 void test_phase_snapshots_and_limits() {
     Game game({.start_level = 0});
     auto state = active_state(game, Piece::I, 5, 19);
@@ -528,6 +556,7 @@ int main() {
         test_soft_drop_and_lock();
         test_lines_score_and_challenge();
         test_top_out_and_serialization();
+        test_missing_next_piece();
         test_phase_snapshots_and_limits();
         test_randomized_branch();
         test_rng_rules();
