@@ -183,6 +183,28 @@ expect_mode_error("")
 expect_mode_ok(endless)
 expect_mode_ok(challenge)
 
+function(expect_unexpected_argument argument)
+    execute_process(
+        COMMAND "${BLOCKS_CLI}" "${argument}"
+        RESULT_VARIABLE result
+        OUTPUT_VARIABLE stdout
+        ERROR_VARIABLE stderr
+    )
+    if(result EQUAL 0)
+        message(FATAL_ERROR
+            "${argument}: expected a nonzero exit for an unexpected positional argument\nstdout: ${stdout}\nstderr: ${stderr}")
+    endif()
+    set(expected "unexpected argument: ${argument}")
+    string(FIND "${stderr}" "${expected}" found)
+    if(found EQUAL -1)
+        message(FATAL_ERROR
+            "${argument}: stderr missing \"${expected}\"\nstderr: ${stderr}")
+    endif()
+endfunction()
+
+# Only replay and verify accept positional paths. Other tools reject them.
+expect_unexpected_argument(extra.rep)
+
 # Input bytes must fit the 7-bit controller mask. Report the 1-based byte
 # position and its value instead of silently accepting or truncating bit 7.
 set(path "${CMAKE_CURRENT_BINARY_DIR}/invalid_input_byte_0x80.bin")
