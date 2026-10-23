@@ -27,7 +27,7 @@ ctest --test-dir build --output-on-failure
 ./build/project_name
 ```
 
-The [controls guide](docs/controls.md) covers the desktop keys, controller buttons, and settings.
+The [controls guide](docs/controls.md) covers the desktop keys, controller buttons, and settings. The [live controller guide](docs/live-controller.md) documents `--controller-stdio` for AI-driven desktop sessions.
 
 ## Run headlessly
 

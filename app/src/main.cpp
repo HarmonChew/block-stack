@@ -1,6 +1,8 @@
 #include "blocks/game.hpp"
 #include "blocks/replay.hpp"
 
+#include "cli_args.hpp"
+
 #include <SDL3/SDL.h>
 
 #include <algorithm>
@@ -889,10 +891,6 @@ int main(int argc, char** argv) {
         std::uint64_t frame_limit = 60000;
         std::string controller_label = "LIVE AI";
         std::string speed = "1";
-        const auto value_after = [&](int& index) -> std::string {
-            if (++index >= argc) throw std::invalid_argument("missing option value");
-            return argv[index];
-        };
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
             if (arg == "--controller-smoke" || arg == "--controller-label" || arg == "--rules" ||
@@ -902,18 +900,20 @@ int main(int argc, char** argv) {
             else if (arg == "--paused") replay_paused = true;
             else if (arg == "--controller-stdio") controller = true;
             else if (arg == "--controller-smoke") controller_smoke = true;
-            else if (arg == "--controller-label") controller_label = value_after(i);
-            else if (arg == "--rules") controller_config.ruleset = ruleset_from_name(value_after(i));
+            else if (arg == "--controller-label") controller_label = value_after(i, argc, argv, arg);
+            else if (arg == "--rules") controller_config.ruleset = ruleset_from_name(value_after(i, argc, argv, arg));
             else if (arg == "--mode") {
-                const auto mode = value_after(i);
-                if (mode != "endless" && mode != "challenge") throw std::invalid_argument("invalid mode");
+                const auto mode = value_after(i, argc, argv, arg);
+                if (mode != "endless" && mode != "challenge")
+                    throw std::invalid_argument("invalid mode: " + mode +
+                                                " (valid modes: endless, challenge)");
                 controller_config.mode = mode == "endless" ? Mode::Endless : Mode::Challenge;
             }
-            else if (arg == "--level") controller_config.start_level = static_cast<int>(unsigned_value(value_after(i), 19));
-            else if (arg == "--height") controller_config.height = static_cast<int>(unsigned_value(value_after(i), 5));
-            else if (arg == "--seed") controller_config.seed = static_cast<std::uint16_t>(unsigned_value(value_after(i), 65535));
-            else if (arg == "--frames") frame_limit = unsigned_value(value_after(i), 1'000'000'000);
-            else if (arg == "--speed") speed = value_after(i);
+            else if (arg == "--level") controller_config.start_level = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 19));
+            else if (arg == "--height") controller_config.height = static_cast<int>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 5));
+            else if (arg == "--seed") controller_config.seed = static_cast<std::uint16_t>(numeric_arg(arg, value_after(i, argc, argv, arg), 0, 65535));
+            else if (arg == "--frames") frame_limit = numeric_arg(arg, value_after(i, argc, argv, arg), 0, 1'000'000'000);
+            else if (arg == "--speed") speed = value_after(i, argc, argv, arg);
             else if (arg == "--smoke-frames" && i + 1 < argc) smoke_frames = std::stoull(argv[++i]);
             else if (arg == "--screenshot" && i + 1 < argc) screenshot_path = argv[++i];
             else if (arg == "--screenshot-frame" && i + 1 < argc) screenshot_frame = std::stoull(argv[++i]);
