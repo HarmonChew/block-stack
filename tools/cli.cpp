@@ -95,6 +95,8 @@ Options parse(int argc, char** argv, const std::string& tool) {
         else if (arg == "--dump-state") options.dump_state = value_after(i, argc, argv, arg);
         else if (arg == "--final-hash") options.final_hash = true;
         else if (!arg.empty() && arg[0] != '-' && !positional_taken) {
+            if (tool != "replay" && tool != "verify")
+                throw std::invalid_argument("unexpected argument: " + arg);
             positional_taken = true;
             if (tool == "verify") options.trace_file = arg;
             else options.replay_file = arg;
