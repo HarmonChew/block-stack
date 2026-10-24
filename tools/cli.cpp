@@ -295,8 +295,11 @@ int run_verify(const Options& options) {
         ++line_number;
         if (line.empty()) continue;
         const auto input = json_integer(line, "input", line_number);
-        if (!input || *input < 0 || *input > 127)
-            throw std::runtime_error("trace record needs 0..127 input");
+        if (!input)
+            trace_field_error(line_number, "input", "missing value; expected a controller mask in 0..127");
+        if (*input < 0 || *input > 127)
+            trace_field_error(line_number, "input", "expected a controller mask in 0..127, got '" +
+                                 std::to_string(*input) + "'");
         game.tick(static_cast<InputFrame>(*input));
         ++records;
         const auto& s = game.state();
@@ -316,7 +319,9 @@ int run_verify(const Options& options) {
         if (const auto piece = json_string(line, "piece", line_number); piece && *piece != piece_name(s.current))
             throw std::runtime_error("Mismatch at frame " + std::to_string(s.frame) + ": piece expected " + *piece + ", actual " + piece_name(s.current));
         if (const auto board = json_string(line, "board", line_number); board) {
-            if (board->size() != s.board.size()) throw std::runtime_error("trace board must contain 200 occupancy characters");
+            if (board->size() != s.board.size())
+                trace_field_error(line_number, "board", "expected " + std::to_string(s.board.size()) +
+                                   " occupancy characters, got " + std::to_string(board->size()));
             for (std::size_t i = 0; i < board->size(); ++i)
                 if (((*board)[i] != '.' && (*board)[i] != '0') != (s.board[i] != 0))
                     throw std::runtime_error("Mismatch at frame " + std::to_string(s.frame) + ": board cell " + std::to_string(i));
