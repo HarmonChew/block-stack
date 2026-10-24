@@ -4,6 +4,7 @@
 #include "cli_args.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -213,17 +214,54 @@ int run_rng(const Options& options) {
     return 0;
 }
 
-std::optional<std::int64_t> json_integer(const std::string& line, const char* name) {
-    const std::regex pattern(std::string("\\\"") + name + "\\\"\\s*:\\s*(-?[0-9]+)");
-    std::smatch match;
-    if (!std::regex_search(line, match, pattern)) return std::nullopt;
-    return std::stoll(match[1].str());
+[[noreturn]] void trace_field_error(std::size_t line_number, const char* field,
+                                    const std::string& message) {
+    throw std::runtime_error("trace line " + std::to_string(line_number) + " field \"" +
+                             field + "\": " + message);
 }
-std::optional<std::string> json_string(const std::string& line, const char* name) {
-    const std::regex pattern(std::string("\\\"") + name + "\\\"\\s*:\\s*\\\"([^\\\"]*)\\\"");
+std::size_t json_value_start(const std::string& line, const char* name) {
+    const std::regex pattern(std::string("\\\"") + name + "\\\"\\s*:\\s*");
     std::smatch match;
-    if (!std::regex_search(line, match, pattern)) return std::nullopt;
-    return match[1].str();
+    return std::regex_search(line, match, pattern)
+               ? static_cast<std::size_t>(match.position() + match.length()) : std::string::npos;
+}
+std::optional<std::int64_t> json_integer(const std::string& line, const char* name,
+                                         std::size_t line_number) {
+    const auto start = json_value_start(line, name);
+    if (start == std::string::npos) return std::nullopt;
+    auto end = line.find_first_of(",}] \t\r\n", start);
+    if (end == std::string::npos) end = line.size();
+    const auto token = line.substr(start, end - start);
+    std::int64_t value = 0;
+    const auto result = std::from_chars(token.data(), token.data() + token.size(), value);
+    const std::size_t digits = !token.empty() && token[0] == '-' ? 1 : 0;
+    const auto next = line.find_first_not_of(" \t\r\n", end);
+    if (result.ec == std::errc::result_out_of_range) {
+        trace_field_error(line_number, name, "integer out of range: '" + token + "'");
+    }
+    if (result.ec != std::errc{} || result.ptr != token.data() + token.size() ||
+        (next != std::string::npos && line[next] != ',' && line[next] != '}' && line[next] != ']') ||
+        (token.size() > digits + 1 && token[digits] == '0')) {
+        trace_field_error(line_number, name, "expected an integer, got '" + token + "'");
+    }
+    return value;
+}
+std::optional<std::string> json_string(const std::string& line, const char* name,
+                                       std::size_t line_number) {
+    const auto start = json_value_start(line, name);
+    if (start == std::string::npos) return std::nullopt;
+    if (start >= line.size() || line[start] != '"') {
+        trace_field_error(line_number, name, "expected a string");
+    }
+    std::size_t end = start + 1;
+    while (end < line.size() && line[end] != '"') end += line[end] == '\\' ? 2 : 1;
+    const auto next = end < line.size() ? line.find_first_not_of(" \t\r\n", end + 1)
+                                        : std::string::npos;
+    if (end >= line.size() ||
+        (next != std::string::npos && line[next] != ',' && line[next] != '}' && line[next] != ']')) {
+        trace_field_error(line_number, name, "expected a string");
+    }
+    return line.substr(start + 1, end - start - 1);
 }
 int run_verify(const Options& options) {
     if (options.trace_file.empty()) throw std::invalid_argument("JSONL trace file required");
@@ -232,16 +270,21 @@ int run_verify(const Options& options) {
     Game game(options.config);
     std::string line;
     std::uint64_t records = 0;
+    std::size_t line_number = 0;
     while (std::getline(in, line)) {
+        ++line_number;
         if (line.empty()) continue;
-        const auto input = json_integer(line, "input");
-        if (!input || *input < 0 || *input > 127)
-            throw std::runtime_error("trace record needs 0..127 input");
+        const auto input = json_integer(line, "input", line_number);
+        if (!input)
+            trace_field_error(line_number, "input", "missing value; expected a controller mask in 0..127");
+        if (*input < 0 || *input > 127)
+            trace_field_error(line_number, "input", "expected a controller mask in 0..127, got '" +
+                                 std::to_string(*input) + "'");
         game.tick(static_cast<InputFrame>(*input));
         ++records;
         const auto& s = game.state();
         const auto check = [&](const char* field, std::int64_t actual) {
-            if (auto expected = json_integer(line, field); expected && *expected != actual) {
+            if (auto expected = json_integer(line, field, line_number); expected && *expected != actual) {
                 std::ostringstream out;
                 out << "Mismatch at frame " << s.frame << ": " << field
                     << " expected " << *expected << ", actual " << actual;
@@ -253,10 +296,12 @@ int run_verify(const Options& options) {
         check("level", s.level); check("lines", s.lines);
         check("score", static_cast<std::int64_t>(s.score));
         check("das", s.das_counter); check("gravity", s.gravity_counter);
-        if (const auto piece = json_string(line, "piece"); piece && *piece != piece_name(s.current))
+        if (const auto piece = json_string(line, "piece", line_number); piece && *piece != piece_name(s.current))
             throw std::runtime_error("Mismatch at frame " + std::to_string(s.frame) + ": piece expected " + *piece + ", actual " + piece_name(s.current));
-        if (const auto board = json_string(line, "board"); board) {
-            if (board->size() != s.board.size()) throw std::runtime_error("trace board must contain 200 occupancy characters");
+        if (const auto board = json_string(line, "board", line_number); board) {
+            if (board->size() != s.board.size())
+                trace_field_error(line_number, "board", "expected " + std::to_string(s.board.size()) +
+                                   " occupancy characters, got " + std::to_string(board->size()));
             for (std::size_t i = 0; i < board->size(); ++i)
                 if (((*board)[i] != '.' && (*board)[i] != '0') != (s.board[i] != 0))
                     throw std::runtime_error("Mismatch at frame " + std::to_string(s.frame) + ": board cell " + std::to_string(i));
