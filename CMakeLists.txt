@@ -53,6 +53,7 @@ if(PROJECT_BUILD_APP)
     endif()
     add_executable(project_name app/src/main.cpp)
     target_link_libraries(project_name PRIVATE blocks_core SDL3::SDL3)
+    target_include_directories(project_name PRIVATE tools)
 endif()
 
 if(PROJECT_BUILD_TESTS)
@@ -68,8 +69,15 @@ if(PROJECT_BUILD_TESTS)
         set(BLOCKS_APP_KEYBOARD_PROFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}/blocks_app_keyboard-profile")
         file(MAKE_DIRECTORY "${BLOCKS_APP_KEYBOARD_PROFILE_DIR}")
         add_test(NAME blocks_app_keyboard COMMAND project_name --keyboard-smoke)
+        set(BLOCKS_APP_CONTROLLER_HOME "${CMAKE_CURRENT_BINARY_DIR}/controller-test-home")
+        add_test(NAME blocks_app_controller
+            COMMAND ${CMAKE_COMMAND} "-DBLOCKS_APP=$<TARGET_FILE:project_name>"
+                    "-DBLOCKS_TEST_HOME=${BLOCKS_APP_CONTROLLER_HOME}"
+                    -P "${CMAKE_SOURCE_DIR}/tests/controller_smoke.cmake")
         set_tests_properties(blocks_app_keyboard PROPERTIES ENVIRONMENT
             "HOME=${BLOCKS_APP_KEYBOARD_PROFILE_DIR};XDG_DATA_HOME=${BLOCKS_APP_KEYBOARD_PROFILE_DIR};SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
+        set_tests_properties(blocks_app_controller PROPERTIES ENVIRONMENT
+            "HOME=${BLOCKS_APP_CONTROLLER_HOME};XDG_DATA_HOME=${BLOCKS_APP_CONTROLLER_HOME}/xdg;SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
     endif()
     if(PROJECT_BUILD_PYTHON)
         find_package(Python3 QUIET COMPONENTS Interpreter)
