@@ -65,9 +65,11 @@ if(PROJECT_BUILD_TESTS)
                 "-DBLOCKS_VERIFY=$<TARGET_FILE:project_name_verify>"
                 -P "${CMAKE_SOURCE_DIR}/tests/cli_diagnostics.cmake")
     if(PROJECT_BUILD_APP AND UNIX AND NOT APPLE)
+        set(BLOCKS_APP_KEYBOARD_PROFILE_DIR "${CMAKE_CURRENT_BINARY_DIR}/blocks_app_keyboard-profile")
+        file(MAKE_DIRECTORY "${BLOCKS_APP_KEYBOARD_PROFILE_DIR}")
         add_test(NAME blocks_app_keyboard COMMAND project_name --keyboard-smoke)
         set_tests_properties(blocks_app_keyboard PROPERTIES ENVIRONMENT
-            "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
+            "HOME=${BLOCKS_APP_KEYBOARD_PROFILE_DIR};XDG_DATA_HOME=${BLOCKS_APP_KEYBOARD_PROFILE_DIR};SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
     endif()
     if(PROJECT_BUILD_PYTHON)
         find_package(Python3 QUIET COMPONENTS Interpreter)
