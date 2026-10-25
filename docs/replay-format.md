@@ -34,7 +34,7 @@ Example:
 ./build/project_name --replay run.rep
 ```
 
-The desktop client also records live frames and writes `last.rep` in its SDL preference directory when F5 is pressed, when the game ends, or when returning to the menu. Completed or abandoned runs additionally receive a uniquely named `run-*.rep` archive, browsable from the menu with F7. The command line `--replay-out` cannot be combined with `--state-in` because a v1 replay always starts from its configuration and seed.
+The desktop client also records live frames and writes `last.rep` in its SDL preference directory when F5 is pressed, when the game ends, when the window is closed during a live game, or when returning to the menu. Completed or abandoned runs additionally receive a uniquely named `run-*.rep` archive, browsable from the menu with F7. The command line `--replay-out` cannot be combined with `--state-in` because a v1 replay always starts from its configuration and seed.
 
 Replay v1 is a research format, not a promise that a file will produce the same hashes under future incompatible rule changes. Archive the engine version with long-running experiments.
 
