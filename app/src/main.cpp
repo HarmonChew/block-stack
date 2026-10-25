@@ -282,6 +282,15 @@ public:
         up.key.scancode = settings_.keys[0];
         up.key.down = false;
         handle(up);
+
+        SDL_Event quit{};
+        quit.type = SDL_EVENT_QUIT;
+        handle(quit);
+        if (running_) throw std::runtime_error("window close did not stop a live game");
+        if (!std::filesystem::exists(last_replay_path()))
+            throw std::runtime_error("window close did not save the live recording");
+        if (Replay::load(last_replay_path()).inputs.size() != 1)
+            throw std::runtime_error("window close saved an incomplete live recording");
     }
     int run(std::uint64_t smoke_frames = 0) {
         const double ns_per_frame = 1'000'000'000.0 / ntsc_frames_per_second;
@@ -434,7 +443,12 @@ private:
         save_settings(settings_);
     }
     void handle(const SDL_Event& event) {
-        if (event.type == SDL_EVENT_QUIT) { running_ = false; return; }
+        if (event.type == SDL_EVENT_QUIT) {
+            if (screen_ == Screen::Playing && !replay_mode_ && !controller_mode_)
+                save_replay(true);
+            running_ = false;
+            return;
+        }
         if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST) key_held_.fill(false);
         if (event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP) {
             if (event.key.scancode >= 0 && event.key.scancode < SDL_SCANCODE_COUNT)
