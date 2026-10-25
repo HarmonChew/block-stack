@@ -451,6 +451,40 @@ void test_missing_next_piece() {
                    "snapshot with missing next piece accepted");
 }
 
+void test_zero_entry_delay_snapshots() {
+    Game clear_game;
+    auto clear_state = active_state(clear_game, Piece::I, 5, 19);
+    clear_state.phase = Phase::EntryDelay;
+    clear_state.entry_remaining = 0;
+    clear_state.clearing_rows = 1;
+    clear_game.set_state(clear_state);
+    clear_game.tick();
+    check(clear_game.state().phase == Phase::LineClear,
+          "zero entry delay did not start line clear");
+    check(clear_game.state().entry_remaining == 0,
+          "zero entry delay became negative before line clear");
+    Game clear_restored;
+    clear_restored.load_state(clear_game.save_state());
+    check(clear_game.state_hash() == clear_restored.state_hash(),
+          "zero entry delay line-clear save/load hash");
+
+    Game challenge_game({.mode = Mode::Challenge});
+    auto challenge_state = active_state(challenge_game, Piece::I, 5, 19);
+    challenge_state.phase = Phase::EntryDelay;
+    challenge_state.entry_remaining = 0;
+    challenge_state.lines = 25;
+    challenge_game.set_state(challenge_state);
+    challenge_game.tick();
+    check(challenge_game.state().phase == Phase::ChallengeComplete,
+          "zero entry delay did not complete challenge");
+    check(challenge_game.state().entry_remaining == 0,
+          "zero entry delay became negative before challenge completion");
+    Game challenge_restored;
+    challenge_restored.load_state(challenge_game.save_state());
+    check(challenge_game.state_hash() == challenge_restored.state_hash(),
+          "zero entry delay challenge save/load hash");
+}
+
 void test_phase_snapshots_and_limits() {
     Game game({.start_level = 0});
     auto state = active_state(game, Piece::I, 5, 19);
@@ -557,6 +591,7 @@ int main() {
         test_lines_score_and_challenge();
         test_top_out_and_serialization();
         test_missing_next_piece();
+        test_zero_entry_delay_snapshots();
         test_phase_snapshots_and_limits();
         test_randomized_branch();
         test_rng_rules();
