@@ -433,7 +433,10 @@ Events Game::tick(InputFrame input) {
         }
         break;
     case Phase::EntryDelay:
-        if (--state_.entry_remaining <= 0) {
+        if (state_.entry_remaining > 0) --state_.entry_remaining;
+        if (state_.entry_remaining == 0) {
+            // Keep snapshots nonnegative when a zero-delay entry switches phases.
+            state_.entry_remaining = 0;
             if (state_.clearing_rows != 0) {
                 // Five clearing passes advance only on global frame % 4 == 0.
                 // The first pass is 1..4 frames after entry; four more passes
