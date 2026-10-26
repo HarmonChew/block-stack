@@ -73,8 +73,10 @@ void test_rng_rules() {
 
     const auto strict = ruleset(RulesetId::ClassicNtscStrict);
     const auto extended = ruleset(RulesetId::ClassicNtscExtended);
-    require(strict.score_capped && strict.level_wrap, "strict ruleset flags");
-    require(!extended.score_capped && !extended.level_wrap, "extended ruleset flags");
+    require(strict.score_capped && strict.bcd_soft_drop && strict.level_wrap,
+            "strict ruleset flags");
+    require(!extended.score_capped && !extended.bcd_soft_drop && !extended.level_wrap,
+            "extended ruleset flags");
     require(strict.timing.gravity == expected_gravity, "ruleset gravity data");
     require(strict.timing.das_initial == 16 && strict.timing.das_repeat == 6,
             "NTSC DAS constants");

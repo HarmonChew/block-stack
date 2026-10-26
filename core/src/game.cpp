@@ -16,6 +16,54 @@ constexpr InputFrame direction_buttons = Left | Right | Down;
 constexpr InputFrame valid_buttons = Left | Right | Down | RotateCW | RotateCCW | Start | Select;
 constexpr std::array<std::uint64_t, 5> clear_points{0, 40, 100, 300, 1200};
 
+std::uint8_t bcd_byte(int value) {
+    return static_cast<std::uint8_t>((value / 10) * 16 + value % 10);
+}
+
+int bcd_value(std::uint8_t value) {
+    return static_cast<int>(value >> 4) * 10 + static_cast<int>(value & 0x0f);
+}
+
+std::uint64_t add_bcd_soft_drop(std::uint64_t score, int cells) {
+    // The cartridge's holdDownPoints is an 8-bit counter. Its `cmp #$02`
+    // skips 0 and 1, and treats values with bit 7 set (130..255) as negative.
+    const unsigned hold_down = static_cast<unsigned>(cells) & 0xffu;
+    if (hold_down < 2 || hold_down >= 130) return score;
+
+    std::uint8_t low = bcd_byte(static_cast<int>(score % 100));
+    std::uint8_t middle = bcd_byte(static_cast<int>((score / 100) % 100));
+    std::uint8_t high = bcd_byte(static_cast<int>((score / 10000) % 100));
+
+    // addHoldDownPoints does DEC score then ADC holdDownPoints. That is
+    // equivalent to adding the binary bonus (holdDownPoints - 1) to the
+    // packed low byte, not performing a decimal addition.
+    low = static_cast<std::uint8_t>(hold_down + low - 1u);
+    if ((low & 0x0f) >= 0x0a) low = static_cast<std::uint8_t>(low + 0x06);
+    if ((low & 0xf0) >= 0xa0) {
+        // This path discards the low nibble, so a carry from the tens digit
+        // zeros the ones digit as well as incrementing the middle byte.
+        low = static_cast<std::uint8_t>((low & 0xf0) + 0x60);
+        middle = static_cast<std::uint8_t>(middle + 1);
+    }
+
+    // The following line-clear loop always runs at least once, even with zero
+    // points, and normalizes the middle and high bytes. Its high-nibble
+    // overflow path caps the score at 99 99 99.
+    if ((middle & 0x0f) >= 0x0a) middle = static_cast<std::uint8_t>(middle + 0x06);
+    if ((middle & 0xf0) >= 0xa0) {
+        middle = static_cast<std::uint8_t>((middle & 0xf0) + 0x60);
+        high = static_cast<std::uint8_t>(high + 1);
+    }
+    if ((high & 0x0f) >= 0x0a) high = static_cast<std::uint8_t>(high + 0x06);
+    if ((high & 0xf0) >= 0xa0) {
+        low = middle = high = 0x99;
+    }
+
+    return static_cast<std::uint64_t>(bcd_value(high)) * 10000 +
+           static_cast<std::uint64_t>(bcd_value(middle)) * 100 +
+           static_cast<std::uint64_t>(bcd_value(low));
+}
+
 int entry_delay(int origin_y) {
     // The timing bands follow the origin coordinate, not the piece's lowest
     // mino. There are two bottom rows in the 10-frame band and four rows per
@@ -306,12 +354,16 @@ void Game::lock(Events& events) {
     // failed downward attempt, then subtracts one when awarding the bonus.
     // A gravity lock can therefore award one less than the visible dropped
     // distance when no final Down attempt occurred.
-    const std::uint64_t soft_bonus = state_.soft_drop_cells >= 2
-        ? static_cast<std::uint64_t>(state_.soft_drop_cells - 1) : 0;
+    const std::uint64_t old_score = state_.score;
+    if (rules_.bcd_soft_drop) {
+        state_.score = add_bcd_soft_drop(state_.score, state_.soft_drop_cells);
+    } else {
+        const std::uint64_t soft_bonus = state_.soft_drop_cells >= 2
+            ? static_cast<std::uint64_t>(state_.soft_drop_cells - 1) : 0;
+        state_.score += soft_bonus;
+    }
     state_.soft_drop_cells = 0;
     state_.soft_drop_counter = 0;
-    const std::uint64_t old_score = state_.score;
-    state_.score += soft_bonus;
     const int old_level = state_.level;
     update_level(cleared, events);
     if (cleared > 0) {
