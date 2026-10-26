@@ -28,12 +28,12 @@ constexpr int board_x = 354;
 constexpr int board_y = 107;
 constexpr int cell_size = 25;
 
-std::uint64_t unsigned_value(const std::string& value, std::uint64_t maximum) {
-    std::uint64_t number = 0;
-    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), number);
-    if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() || number > maximum)
-        throw std::invalid_argument("invalid unsigned value: " + value);
-    return number;
+InputFrame controller_mask(const std::string& reply) {
+    std::uint64_t mask = 0;
+    const auto parsed = std::from_chars(reply.data(), reply.data() + reply.size(), mask);
+    if (parsed.ec != std::errc{} || parsed.ptr != reply.data() + reply.size() || mask > 31)
+        throw std::invalid_argument("invalid controller mask: '" + reply + "' (expected integer in 0..31)");
+    return static_cast<InputFrame>(mask);
 }
 
 struct Color { Uint8 r, g, b, a = 255; };
@@ -621,7 +621,7 @@ private:
             std::string response;
             if (!std::getline(std::cin, response)) { running_ = false; return; }
             if (!response.empty() && response.back() == '\r') response.pop_back();
-            input = static_cast<InputFrame>(unsigned_value(response, 31));
+            input = controller_mask(response);
         } else input = current_input();
         const auto events = game_.tick(input);
         if (events.lines_cleared > 0) {
