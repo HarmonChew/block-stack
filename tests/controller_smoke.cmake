@@ -64,6 +64,33 @@ if(NOT state_count EQUAL 4)
         "controller smoke: expected 4 state requests, got ${state_count}\nstdout: ${stdout}\nstderr: ${stderr}")
 endif()
 
+# A reply outside the controller mask range must fail before a tick and name
+# both the rejected reply and the accepted range.
+set(bad_mask_file "${CMAKE_CURRENT_BINARY_DIR}/controller_bad_mask.txt")
+file(WRITE "${bad_mask_file}" "32\n")
+execute_process(
+    COMMAND ${app_env} "${BLOCKS_APP}" --controller-stdio --controller-smoke --paused
+            --rules classic_ntsc_strict --mode endless --level 18 --seed 42
+            --frames 3 --speed 8 --controller-label "CTest AI"
+    INPUT_FILE "${bad_mask_file}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE stdout
+    ERROR_VARIABLE stderr
+    TIMEOUT 30
+)
+file(REMOVE "${bad_mask_file}")
+
+if(result EQUAL 0)
+    message(FATAL_ERROR
+        "controller mask 32: expected a nonzero exit\nstdout: ${stdout}\nstderr: ${stderr}")
+endif()
+set(expected "invalid controller mask: '32' (expected integer in 0..31)")
+string(FIND "${stderr}" "${expected}" found)
+if(found EQUAL -1)
+    message(FATAL_ERROR
+        "controller mask 32: stderr missing \"${expected}\"\nstderr: ${stderr}")
+endif()
+
 function(expect_desktop_error description expected)
     execute_process(
         COMMAND ${app_env} "${BLOCKS_APP}" ${ARGN}
