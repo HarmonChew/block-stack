@@ -451,6 +451,32 @@ void test_missing_next_piece() {
                    "snapshot with missing next piece accepted");
 }
 
+void test_full_visible_rows() {
+    Game game({.start_level = 0});
+    std::array<std::uint8_t, board_width * board_height> board{};
+    for (int y = board_height - 5; y < board_height; ++y) {
+        std::fill_n(board.begin() + y * board_width, board_width, 1);
+    }
+
+    auto state = active_state(game);
+    state.board = board;
+    expect_invalid([&] { game.set_state(state); },
+                   "state with five full visible rows accepted");
+    expect_invalid([&] { game.set_board(board); },
+                   "board with five full visible rows accepted");
+
+    Game source({.start_level = 0});
+    auto blob = source.save_state();
+    // The board follows the magic, version, ruleset, mode, level, height, and seed.
+    constexpr std::size_t board_offset = 8 * 7;
+    check(blob.size() >= board_offset + board_width * board_height,
+          "saved state too short");
+    std::copy(board.begin(), board.end(), blob.begin() + board_offset);
+    Game target;
+    expect_invalid([&] { target.load_state(blob); },
+                   "snapshot with five full visible rows accepted");
+}
+
 void test_zero_entry_delay_snapshots() {
     Game clear_game;
     auto clear_state = active_state(clear_game, Piece::I, 5, 19);
@@ -591,6 +617,7 @@ int main() {
         test_lines_score_and_challenge();
         test_top_out_and_serialization();
         test_missing_next_piece();
+        test_full_visible_rows();
         test_zero_entry_delay_snapshots();
         test_phase_snapshots_and_limits();
         test_randomized_branch();
