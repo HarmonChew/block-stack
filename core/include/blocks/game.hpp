@@ -45,6 +45,7 @@ struct Ruleset {
     RulesetId id = RulesetId::ClassicNtscExtended;
     TimingRules timing;
     bool score_capped = false;
+    bool bcd_soft_drop = false;
     bool level_wrap = false;
 };
 Ruleset ruleset(RulesetId id);

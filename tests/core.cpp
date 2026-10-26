@@ -309,6 +309,61 @@ void test_soft_drop_and_lock() {
     }
 }
 
+void test_strict_bcd_soft_drop() {
+    // The lock-frame Down attempt increments soft_drop_cells, so a starting
+    // value of N becomes the cartridge's holdDownPoints N+1 and awards N.
+    auto lock_score = [](RulesetId id, std::uint64_t score, int bonus) {
+        Game game({.ruleset = id, .start_level = 0});
+        auto state = active_state(game, Piece::O, 5, 18);
+        state.score = score;
+        state.soft_drop_counter = 2;
+        state.soft_drop_cells = bonus;
+        state.previous_input = Down;
+        game.set_state(state);
+        check(game.tick(Down).locked, "expected soft-drop lock");
+        return game.state().score;
+    };
+
+    constexpr auto strict = RulesetId::ClassicNtscStrict;
+    constexpr auto extended = RulesetId::ClassicNtscExtended;
+
+    // Ordinary low-byte BCD addition: 50 + 10 remains 60.
+    check(lock_score(strict, 123450, 10) == 123460,
+          "strict ordinary soft-drop score");
+
+    // Binary 0x0b is added to packed 0x56, producing 0x60: the cartridge
+    // awards 4 points, not the plain integer bonus of 10.
+    check(lock_score(strict, 123456, 10) == 123460,
+          "binary bonus added to BCD digits");
+
+    // Packed 0x95 + 0x0b becomes 0x9f, then 0xa5 after the ones correction.
+    // The tens-digit carry path stores 0x00 and increments the middle byte,
+    // zeroing the ones digit: 123495 + 10 gives 123500, not 123505.
+    check(lock_score(strict, 123495, 10) == 123500,
+          "tens carry must zero the ones digit");
+
+    // The middle byte reaches 0x9a and is normalized to zero with a carry.
+    check(lock_score(strict, 129995, 10) == 130000,
+          "BCD carry through middle and high bytes");
+
+    // The high byte overflows after normalization, so the strict cap applies.
+    check(lock_score(strict, 999995, 10) == 999999,
+          "strict soft-drop score cap");
+
+    // holdDownPoints 128 adds 127 (0x7f); correcting the low digit yields 85.
+    check(lock_score(strict, 0, 127) == 85,
+          "0x7f bonus is read as seven tens and fifteen ones");
+
+    // holdDownPoints 130 is negative under the ROM's signed comparison.
+    check(lock_score(strict, 500, 129) == 500,
+          "hold-down counters 130..255 award nothing");
+
+    check(lock_score(extended, 123456, 10) == 123466,
+          "extended soft drop must keep the integer bonus");
+    check(lock_score(extended, 999990, 20) == 1000010,
+          "extended soft drop must not apply the strict cap");
+}
+
 void test_lines_score_and_challenge() {
     Game game({.start_level = 5});
     auto state = active_state(game, Piece::I, 5, 19);
@@ -614,6 +669,7 @@ int main() {
         test_gravity_and_opening();
         test_das_and_rotation();
         test_soft_drop_and_lock();
+        test_strict_bcd_soft_drop();
         test_lines_score_and_challenge();
         test_top_out_and_serialization();
         test_missing_next_piece();

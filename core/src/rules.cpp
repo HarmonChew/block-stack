@@ -32,10 +32,12 @@ Ruleset ruleset(RulesetId id) {
     switch (id) {
     case RulesetId::ClassicNtscStrict:
         result.score_capped = true;
+        result.bcd_soft_drop = true;
         result.level_wrap = true;
         return result;
     case RulesetId::ClassicNtscExtended:
         result.score_capped = false;
+        result.bcd_soft_drop = false;
         result.level_wrap = false;
         return result;
     }
