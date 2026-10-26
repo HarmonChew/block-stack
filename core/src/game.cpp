@@ -91,12 +91,29 @@ struct Reader {
     }
 };
 
+// A lock can fill at most four visible rows; a fifth would index past
+// clear_points in lock().
+bool has_five_full_visible_rows(std::span<const std::uint8_t> board) {
+    int full_rows = 0;
+    for (int row = 0; row < board_height; ++row) {
+        const auto cells = board.subspan(static_cast<std::size_t>(row) * board_width, board_width);
+        if (std::all_of(cells.begin(), cells.end(), [](std::uint8_t cell) { return cell != 0; }) &&
+            ++full_rows >= 5) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void validate_state(const State& state) {
     for (const auto cell : state.board) {
         if (cell > 7) throw std::invalid_argument("invalid board cell");
     }
     for (const auto cell : state.hidden_rows) {
         if (cell > 7) throw std::invalid_argument("invalid hidden board cell");
+    }
+    if (has_five_full_visible_rows(state.board)) {
+        throw std::invalid_argument("state has five full visible rows");
     }
     if (!valid_piece(state.current) || !valid_piece(state.next) ||
         !valid_piece(state.previous_piece)) {
@@ -483,6 +500,9 @@ void Game::set_board(std::span<const std::uint8_t> board) {
     if (board.size() != state_.board.size()) throw std::invalid_argument("board must be 200 cells");
     if (std::any_of(board.begin(), board.end(), [](auto value) { return value > 7; })) {
         throw std::invalid_argument("board cell must be 0..7");
+    }
+    if (has_five_full_visible_rows(board)) {
+        throw std::invalid_argument("board has five full visible rows");
     }
     std::copy(board.begin(), board.end(), state_.board.begin());
 }
