@@ -565,6 +565,7 @@ private:
             else if (key == SDL_SCANCODE_RETURN) capturing_ = true;
             else if (key == SDL_SCANCODE_LEFT) settings_.volume = std::max(0.0f, settings_.volume - 0.1f);
             else if (key == SDL_SCANCODE_RIGHT) settings_.volume = std::min(1.0f, settings_.volume + 0.1f);
+            else if (key == SDL_SCANCODE_H) settings_.high_contrast = !settings_.high_contrast;
             sound_.volume(settings_.volume);
             save_settings(settings_);
             return;
