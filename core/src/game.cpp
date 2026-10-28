@@ -33,7 +33,8 @@ bool valid_piece(Piece piece) {
 
 bool valid_config(const Config& config) {
     return (config.ruleset == RulesetId::ClassicNtscStrict ||
-            config.ruleset == RulesetId::ClassicNtscExtended) &&
+            config.ruleset == RulesetId::ClassicNtscExtended ||
+            config.ruleset == RulesetId::ClassicNtscDoubleKillscreen) &&
            (config.mode == Mode::Endless || config.mode == Mode::Challenge) &&
            config.start_level >= 0 && config.start_level <= 19 &&
            config.height >= 0 && config.height <= 5;
@@ -416,14 +417,21 @@ void Game::process_drop(InputFrame input, Events& events) {
 
     const bool gravity_attempt = state_.gravity_counter >= gravity_period(state_.level);
     if (!soft_attempt && !gravity_attempt) return;
-    // A coincident soft drop and gravity tick produce one downward attempt.
+    // A coincident soft drop and gravity tick produce one downward attempt,
+    // or two from the ruleset's double-gravity level. Any failed move locks,
+    // keeping an earlier successful move but setting neither drop flag, as a
+    // failed single attempt does. Soft-drop points still count per attempt.
     state_.gravity_counter = 0;
-    if (move(0, 1)) {
-        events.soft_drop = soft_attempt;
-        events.gravity_drop = !soft_attempt && gravity_attempt;
-    } else {
-        lock(events);
+    const int rows = rules_.double_gravity_level > 0 &&
+                     state_.level >= rules_.double_gravity_level ? 2 : 1;
+    for (int row = 0; row < rows; ++row) {
+        if (!move(0, 1)) {
+            lock(events);
+            return;
+        }
     }
+    events.soft_drop = soft_attempt;
+    events.gravity_drop = !soft_attempt && gravity_attempt;
 }
 
 Events Game::tick(InputFrame input) {
@@ -578,7 +586,7 @@ void Game::load_state(std::span<const std::uint8_t> blob) {
     }
     if (r.u64() != 1) throw std::invalid_argument("unsupported game state version");
     Config config;
-    config.ruleset = static_cast<RulesetId>(r.bounded(1));
+    config.ruleset = static_cast<RulesetId>(r.bounded(2));
     config.mode = static_cast<Mode>(r.bounded(1));
     config.start_level = r.integer();
     config.height = r.integer();

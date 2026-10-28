@@ -68,7 +68,7 @@ Replay Replay::load(const std::string& path) {
     replay.hash_interval = read_le<std::uint32_t>(in);
     const auto frame_count = read_le<std::uint64_t>(in);
     const auto checkpoint_count = read_le<std::uint64_t>(in);
-    if (rules > 1 || mode > 1 || replay.config.start_level > 19 || replay.config.height > 5)
+    if (rules > 2 || mode > 1 || replay.config.start_level > 19 || replay.config.height > 5)
         throw std::runtime_error("invalid replay configuration");
     if (frame_count > 100'000'000 || checkpoint_count > frame_count)
         throw std::runtime_error("replay size limit exceeded");

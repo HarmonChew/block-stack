@@ -38,6 +38,13 @@ Ruleset ruleset(RulesetId id) {
         result.score_capped = false;
         result.level_wrap = false;
         return result;
+    case RulesetId::ClassicNtscDoubleKillscreen:
+        // Extended rules plus the benchmark "double killscreen": two rows per
+        // frame from level 39. The original cartridge stays at one row.
+        result.score_capped = false;
+        result.level_wrap = false;
+        result.double_gravity_level = 39;
+        return result;
     }
     throw std::invalid_argument("unknown ruleset id");
 }
@@ -52,15 +59,21 @@ RulesetId ruleset_from_name(const std::string& name) {
         value == "extended") {
         return RulesetId::ClassicNtscExtended;
     }
+    if (value == "classic_ntsc_double_killscreen" ||
+        value == "classic-ntsc-double-killscreen" || value == "double_killscreen") {
+        return RulesetId::ClassicNtscDoubleKillscreen;
+    }
     throw std::invalid_argument("unknown ruleset: " + name + " (valid names: " +
                                 ruleset_name(RulesetId::ClassicNtscStrict) + ", " +
-                                ruleset_name(RulesetId::ClassicNtscExtended) + ")");
+                                ruleset_name(RulesetId::ClassicNtscExtended) + ", " +
+                                ruleset_name(RulesetId::ClassicNtscDoubleKillscreen) + ")");
 }
 
 const char* ruleset_name(RulesetId id) {
     switch (id) {
     case RulesetId::ClassicNtscStrict: return "classic_ntsc_strict";
     case RulesetId::ClassicNtscExtended: return "classic_ntsc_extended";
+    case RulesetId::ClassicNtscDoubleKillscreen: return "classic_ntsc_double_killscreen";
     }
     throw std::invalid_argument("unknown ruleset id");
 }

@@ -22,7 +22,7 @@ except ImportError:  # The native API remains usable without NumPy.
 
 _PIECES = ("I", "J", "L", "O", "S", "T", "Z", "None")
 _PHASES = ("active", "line_clear", "entry_delay", "game_over", "challenge_complete")
-_RULESETS = ("classic_ntsc_strict", "classic_ntsc_extended")
+_RULESETS = ("classic_ntsc_strict", "classic_ntsc_extended", "classic_ntsc_double_killscreen")
 _MODES = ("endless", "challenge")
 _WIDTH = 10
 _HEIGHT = 20

@@ -12,7 +12,7 @@ I started this project mainly to train and test an AI that can play with NES-sty
 - **AI tools:** frame-level actions, board and timing observations, deterministic seeds, cloning, save states, batch environments, and an optional Gymnasium wrapper.
 - **Practice tools:** replay recording and playback, frame advance, speed controls, a debug overlay, and extra statistics such as four-line rate and I-piece drought.
 - **Desktop conveniences:** keyboard and gamepad controls, rebinding, fullscreen, high contrast, persistent settings, and original visuals and sound effects.
-- **Two NTSC presets:** `classic_ntsc_strict` keeps closer numerical limits; the default `classic_ntsc_extended` keeps the same controls and timing with an uncapped score and safe high-level play.
+- **Three NTSC presets:** `classic_ntsc_strict` keeps closer numerical limits; the default `classic_ntsc_extended` keeps the same controls and timing with an uncapped score and safe high-level play; `classic_ntsc_double_killscreen` is extended plus the AI-benchmark rule that pieces fall two rows per frame from level 39.
 
 This repository provides the environment and interfaces for training an agent; it does not include a trained AI player.
 

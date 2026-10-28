@@ -81,7 +81,7 @@ function(expect_rules_error value)
         message(FATAL_ERROR
             "--rules ${value}: stderr missing \"unknown ruleset: ${value}\"\nstderr: ${stderr}")
     endif()
-    foreach(name IN ITEMS classic_ntsc_strict classic_ntsc_extended)
+    foreach(name IN ITEMS classic_ntsc_strict classic_ntsc_extended classic_ntsc_double_killscreen)
         string(FIND "${stderr}" "${name}" found)
         if(found EQUAL -1)
             message(FATAL_ERROR
@@ -114,6 +114,7 @@ expect_missing_value_error(--seed)
 # Documented ruleset names still parse.
 expect_rules_ok(classic_ntsc_strict)
 expect_rules_ok(classic_ntsc_extended)
+expect_rules_ok(classic_ntsc_double_killscreen)
 
 # Non-numeric tokens are the regression that used to print "error: stoull".
 expect_numeric_error(--seed abc 0..65535)

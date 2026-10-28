@@ -15,7 +15,7 @@ constexpr double ntsc_frames_per_second = 60.0988138974405;
 enum class Piece : std::uint8_t { I, J, L, O, S, T, Z, None = 7 };
 enum class Phase : std::uint8_t { Active, LineClear, EntryDelay, GameOver, ChallengeComplete };
 enum class Mode : std::uint8_t { Endless, Challenge };
-enum class RulesetId : std::uint8_t { ClassicNtscStrict, ClassicNtscExtended };
+enum class RulesetId : std::uint8_t { ClassicNtscStrict, ClassicNtscExtended, ClassicNtscDoubleKillscreen };
 
 enum Button : std::uint8_t {
     Left = 1u << 0,
@@ -46,6 +46,8 @@ struct Ruleset {
     TimingRules timing;
     bool score_capped = false;
     bool level_wrap = false;
+    // From this level, each gravity tick tries two downward moves; 0 never.
+    int double_gravity_level = 0;
 };
 Ruleset ruleset(RulesetId id);
 RulesetId ruleset_from_name(const std::string& name);

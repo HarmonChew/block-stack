@@ -10,7 +10,7 @@ All multi-byte integers are little-endian. Offsets below are from the start of t
 |---:|---:|---|
 | 0 | 8 | ASCII magic `BLOKREP1` |
 | 8 | 4 | Version, currently `1` (`uint32`) |
-| 12 | 1 | Ruleset: `0` strict NTSC, `1` extended NTSC |
+| 12 | 1 | Ruleset: `0` strict NTSC, `1` extended NTSC, `2` extended NTSC with double killscreen |
 | 13 | 1 | Mode: `0` Endless, `1` Challenge |
 | 14 | 1 | Starting level, 0–19 |
 | 15 | 1 | Challenge height, 0–5 |

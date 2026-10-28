@@ -575,6 +575,36 @@ void test_phase_snapshots_and_limits() {
         check(fast.tick().gravity_drop && fast.state().y == 1,
               "level 29 and safe high levels must use 1G");
     }
+
+    Game doubled({.ruleset = RulesetId::ClassicNtscDoubleKillscreen, .start_level = 19});
+    for (int level : {29, 38}) {
+        state = active_state(doubled, Piece::T, 5, 0);
+        state.level = level;
+        doubled.set_state(state);
+        check(doubled.tick().gravity_drop && doubled.state().y == 1,
+              "double killscreen ruleset must use 1G below level 39");
+    }
+    for (int level : {39, 300}) {
+        state = active_state(doubled, Piece::T, 5, 0);
+        state.level = level;
+        doubled.set_state(state);
+        check(doubled.tick().gravity_drop && doubled.state().y == 2,
+              "double killscreen ruleset must use 2G from level 39");
+    }
+    // T spawn orientation occupies rows y and y+1; a floor at row 4 leaves room
+    // for one more row from y = 1, so the second move fails and locks.
+    state = active_state(doubled, Piece::T, 5, 1);
+    state.level = 39;
+    for (int x = 0; x < 10; ++x) state.board[4 * 10 + x] = 1;
+    doubled.set_state(state);
+    const auto blocked = doubled.tick();
+    check(blocked.locked && !blocked.gravity_drop,
+          "double killscreen must lock when the second move fails");
+    check(doubled.state().board[3 * 10 + 5] != 0,
+          "double killscreen lock must keep the first move");
+    check(std::string(ruleset_name(ruleset_from_name("classic_ntsc_double_killscreen"))) ==
+              "classic_ntsc_double_killscreen",
+          "double killscreen ruleset name must round-trip");
 }
 
 void test_randomized_branch() {

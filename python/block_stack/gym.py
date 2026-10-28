@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Callable
 
-from . import Game, Input, State, Events
+from . import Game, Input, State, Events, _RULESETS
 
 try:
     import gymnasium as gymnasium
@@ -149,7 +149,7 @@ def _raw_space() -> Any:
         "piece_count": scalar(0, u32, np.uint32),
         "stats": spaces.Box(0, u64, shape=(18,), dtype=np.uint64),
         "terminal": spaces.Discrete(2),
-        "ruleset": spaces.Discrete(2),
+        "ruleset": spaces.Discrete(3),
         "mode": spaces.Discrete(2),
         "start_level": scalar(0, i32.max, np.int32),
         "height": scalar(0, 5, np.int32),
@@ -191,7 +191,7 @@ def _raw_observation(state: State) -> dict[str, Any]:
         "piece_count": _scalar(state.piece_count, np.uint32),
         "stats": np.asarray(stats_array, dtype=np.uint64),
         "terminal": int(state.terminal),
-        "ruleset": ("classic_ntsc_strict", "classic_ntsc_extended").index(state.ruleset),
+        "ruleset": _RULESETS.index(state.ruleset),
         "mode": ("endless", "challenge").index(state.mode),
         "start_level": _scalar(state.start_level, np.int32),
         "height": _scalar(state.height, np.int32),
