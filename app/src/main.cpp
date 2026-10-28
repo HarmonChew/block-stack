@@ -74,7 +74,7 @@ struct Settings {
 };
 
 std::string config_dir() {
-    char* path = SDL_GetPrefPath("project_name", "project_name");
+    char* path = SDL_GetPrefPath("block_stack", "block_stack");
     if (!path) return ".";
     std::string result(path);
     SDL_free(path);
@@ -191,7 +191,7 @@ enum class Screen { Menu, Playing, Settings, ReplayBrowser };
 class App {
 public:
     App() : settings_(load_settings()), game_(make_config()), sound_(settings_.volume) {
-        window_ = SDL_CreateWindow("[PROJECT_NAME]", logical_w, logical_h,
+        window_ = SDL_CreateWindow("BLOCK STACK", logical_w, logical_h,
             SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
         if (!window_) throw std::runtime_error(SDL_GetError());
         renderer_ = SDL_CreateRenderer(window_, nullptr);
@@ -715,7 +715,7 @@ private:
         text(renderer_, 45, static_cast<float>(y + 22), value, highlight ? accent : white, 2);
     }
     void hud() const {
-        text(renderer_, 42, 35, "[PROJECT_NAME]", white, 3);
+        text(renderer_, 42, 35, "BLOCK STACK", white, 3);
         text(renderer_, 665, 43, "FRAME LAB  /  NTSC", accent, 2);
         label_value(112, "SCORE", grouped(game_.state().score), true);
         label_value(181, game_.config().mode == Mode::Challenge ? "LEVEL / TO GO" : "LEVEL / LINES",
@@ -762,7 +762,7 @@ private:
         text(renderer_, 366, 366, "R RESTART  ESC MENU", accent, 1);
     }
     void render_menu() const {
-        text(renderer_, 82, 101, "[PROJECT_NAME]", white, 4);
+        text(renderer_, 82, 101, "BLOCK STACK", white, 4);
         text(renderer_, 85, 158, "A DETERMINISTIC FALLING-BLOCK LAB", accent, 2);
         fill(renderer_, 81, 212, 800, 340, panel);
         outline(renderer_, 81, 212, 800, 340, panel_edge);

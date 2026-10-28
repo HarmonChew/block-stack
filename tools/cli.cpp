@@ -41,7 +41,7 @@ struct Options {
 };
 
 void help(const std::string& tool) {
-    std::cout << "project_name_" << tool << " — deterministic falling-block research tools\n"
+    std::cout << "block_stack_" << tool << " — deterministic falling-block research tools\n"
               << "Options: --rules classic_ntsc_strict|classic_ntsc_extended\n"
               << "         --mode endless|challenge --level 0..19 --height 0..5\n"
               << "         --seed 0..65535 --frames N --input-file INPUTS.bin\n"

@@ -46,7 +46,7 @@ const auto hash = game.state_hash();
 Build the `blocks_native` target and point `BLOCKS_NATIVE_LIB` at its shared library when needed. Set `PYTHONPATH=python` to import from this checkout. The package uses `ctypes` over the C ABI and works without NumPy; if NumPy is available, `State.board` is a read-only `(20, 10)` `uint8` array. Otherwise it is a tuple of rows.
 
 ```python
-from project_name import Game, LEFT, DOWN, VectorEnv
+from block_stack import Game, LEFT, DOWN, VectorEnv
 
 with Game(ruleset="classic_ntsc_extended", start_level=18, seed=42) as game:
     state, events = game.step(LEFT | DOWN)
@@ -67,10 +67,10 @@ The C ABI is declared in [`core/include/blocks/c_api.h`](../core/include/blocks/
 
 ## Gymnasium adapter
 
-Install `gymnasium` and `numpy` for `project_name.gym`. The adapter supplies its own reward, action, observation, and truncation policies; gameplay remains in the C++ core.
+Install `gymnasium` and `numpy` for `block_stack.gym`. The adapter supplies its own reward, action, observation, and truncation policies; gameplay remains in the C++ core.
 
 ```python
-from project_name.gym import make
+from block_stack.gym import make
 
 env = make(start_level=18, seed=42, action_mode="bitmask",
            observation_mode="raw", reward="score_delta", max_frames=10000)
@@ -83,4 +83,4 @@ finally:
 
 `action_mode="multibinary"` (default) uses `MultiBinary(5)` in left/right/down/CW/CCW order. `action_mode="bitmask"` uses `Discrete(32)`. `observation_mode="raw"` provides the visible and hidden boards, current/next/previous piece IDs, phase, position, orientation, frame, score, lines, timing and first-piece counters, RNG state, piece count, terminal flag, configuration, and statistics. `observation_mode="neural"` provides board channels `(20,10,8)`, one-hot pieces/orientation, and 12 scaled timing values. Reward can be `"score_delta"` (default), `"lines"`, `"survival"`, or a callback `(state, events) -> float`. The optional `max_frames` sets Gymnasium `truncated`; game over or challenge completion sets `terminated`. `info` includes events, state hash, and four-line rate.
 
-For benchmark and research runs, use `project_name_benchmark` or the Python `VectorEnv`. Timing and performance figures should always name the ruleset, seed policy, input policy, number of environments, and hardware.
+For benchmark and research runs, use `block_stack_benchmark` or the Python `VectorEnv`. Timing and performance figures should always name the ruleset, seed policy, input policy, number of environments, and hardware.

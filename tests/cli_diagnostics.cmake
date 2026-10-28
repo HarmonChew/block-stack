@@ -1,6 +1,6 @@
 # Black-box regression checks for the headless CLI diagnostics.
 #
-# Run with: cmake -DBLOCKS_CLI=<path to project_name_headless> -P tests/cli_diagnostics.cmake
+# Run with: cmake -DBLOCKS_CLI=<path to block_stack_headless> -P tests/cli_diagnostics.cmake
 #
 # Every malformed numeric option must exit nonzero with an error that names the
 # option, quotes the supplied value, and states the accepted range instead of
@@ -8,10 +8,10 @@
 # values and unknown ruleset names must also explain what was expected.
 
 if(NOT DEFINED BLOCKS_CLI)
-    message(FATAL_ERROR "BLOCKS_CLI (path to project_name_headless) is required")
+    message(FATAL_ERROR "BLOCKS_CLI (path to block_stack_headless) is required")
 endif()
 if(NOT DEFINED BLOCKS_VERIFY)
-    message(FATAL_ERROR "BLOCKS_VERIFY (path to project_name_verify) is required")
+    message(FATAL_ERROR "BLOCKS_VERIFY (path to block_stack_verify) is required")
 endif()
 
 function(expect_numeric_error option value range)

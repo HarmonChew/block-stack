@@ -11,7 +11,7 @@ Measured on this workstation with an AMD Ryzen 9 9950X, GCC 15.2, CMake 4.2.3, a
 Reproduce a row with:
 
 ```sh
-./build/project_name_benchmark --envs 1000 --frames 100000 --seed 42
+./build/block_stack_benchmark --envs 1000 --frames 100000 --seed 42
 ```
 
 The vector loop is sequential in one C++ thread. Each environment owns its simulation and RNG state; scheduling cannot change the result. This benchmark excludes Python observation conversion and agent inference time.

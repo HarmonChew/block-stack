@@ -30,11 +30,11 @@ The first connected SDL3 gamepad is used. Keyboard and gamepad states are combin
 | F3 / F4 | Toggle VSync / integer scaling |
 | Esc | Return to the menu; save the current live recording |
 
-The pause, speed, debug, preview visibility, fullscreen, and palette switches are desktop presentation controls. They do not add game mechanics to a frame input. F5 writes a replay after at least one live frame has been recorded; pressing it again overwrites `last.rep` with the recording through the newer frame. Completed or abandoned runs also receive a separate `run-*.rep` archive in the app preference directory. Closing the window during a live game saves the recording in the same way; closing during replay playback does not save. F5 has no save effect during replay playback. Replays can also be loaded on launch with `./build/project_name --replay path/to/game.rep`.
+The pause, speed, debug, preview visibility, fullscreen, and palette switches are desktop presentation controls. They do not add game mechanics to a frame input. F5 writes a replay after at least one live frame has been recorded; pressing it again overwrites `last.rep` with the recording through the newer frame. Completed or abandoned runs also receive a separate `run-*.rep` archive in the app preference directory. Closing the window during a live game saves the recording in the same way; closing during replay playback does not save. F5 has no save effect during replay playback. Replays can also be loaded on launch with `./build/block_stack --replay path/to/game.rep`.
 
-For a visual snapshot from the command line, run `./build/project_name --screenshot capture.bmp --smoke-frames 2` after building the SDL3 target. The screenshot is saved as BMP on the first rendered frame, or at a requested logical replay frame with `--screenshot-frame N`; `--smoke-frames` exits after the requested number of rendered frames. These options do not change the frame rules.
+For a visual snapshot from the command line, run `./build/block_stack --screenshot capture.bmp --smoke-frames 2` after building the SDL3 target. The screenshot is saved as BMP on the first rendered frame, or at a requested logical replay frame with `--screenshot-frame N`; `--smoke-frames` exits after the requested number of rendered frames. These options do not change the frame rules.
 
-Use `./build/project_name --replay path/to/game.rep --paused` to inspect a replay
+Use `./build/block_stack --replay path/to/game.rep --paused` to inspect a replay
 from its initial frame. Press `.` to advance one frame or P to play. This is
 useful for short AI input experiments that would otherwise finish immediately.
 
@@ -81,4 +81,4 @@ The C++ `InputFrame` and Python `Input` bitmasks are:
 | 5 | 32 | Start, currently accepted but not handled by core gameplay |
 | 6 | 64 | Select, currently accepted but not handled by core gameplay |
 
-`project_name_headless --input-file controls.bin` reads one byte per logical frame. Bits may be combined (for example 9 = Left + clockwise rotation); use 0 to release all buttons. The five Gymnasium gameplay actions exclude Start and Select. See [ai-api.md](ai-api.md) for the API and [compatibility.md](compatibility.md) for exact versus approximate NES input behavior.
+`block_stack_headless --input-file controls.bin` reads one byte per logical frame. Bits may be combined (for example 9 = Left + clockwise rotation); use 0 to release all buttons. The five Gymnasium gameplay actions exclude Start and Select. See [ai-api.md](ai-api.md) for the API and [compatibility.md](compatibility.md) for exact versus approximate NES input behavior.

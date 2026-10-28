@@ -1,6 +1,6 @@
 # Black-box check for the live desktop controller protocol.
 #
-# Run with: cmake -DBLOCKS_APP=<path to project_name> -P tests/controller_smoke.cmake
+# Run with: cmake -DBLOCKS_APP=<path to block_stack> -P tests/controller_smoke.cmake
 #
 # The app owns the frame clock and requests one mask per tick. A short mask
 # stream drives --controller-smoke through pause, single-frame, restart, and a
@@ -9,7 +9,7 @@
 # not touch the developer's real app preference directory.
 
 if(NOT DEFINED BLOCKS_APP)
-    message(FATAL_ERROR "BLOCKS_APP (path to project_name) is required")
+    message(FATAL_ERROR "BLOCKS_APP (path to block_stack) is required")
 endif()
 
 if(DEFINED BLOCKS_TEST_HOME)

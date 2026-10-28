@@ -29,9 +29,9 @@ A zero-frame CLI recording stores the initial game-state hash and verifies as a 
 Example:
 
 ```sh
-./build/project_name_headless --seed 42 --frames 10000 --replay-out run.rep --final-hash
-./build/project_name_replay run.rep
-./build/project_name --replay run.rep
+./build/block_stack_headless --seed 42 --frames 10000 --replay-out run.rep --final-hash
+./build/block_stack_replay run.rep
+./build/block_stack --replay run.rep
 ```
 
 The desktop client also records live frames and writes `last.rep` in its SDL preference directory when F5 is pressed, when the game ends, when the window is closed during a live game, or when returning to the menu. Completed or abandoned runs additionally receive a uniquely named `run-*.rep` archive, browsable from the menu with F7. The command line `--replay-out` cannot be combined with `--state-in` because a v1 replay always starts from its configuration and seed.
@@ -45,19 +45,19 @@ Replay v1 is a research format, not a promise that a file will produce the same 
 `Game::state_hash()` is 64-bit FNV-1a over the exact bytes returned by `save_state()`. It therefore includes configuration as well as dynamic state. Do not treat it as a cryptographic integrity signature.
 
 ```sh
-./build/project_name_headless --seed 42 --frames 1000 --state-out checkpoint.state
-./build/project_name_headless --state-in checkpoint.state --frames 1000 --state-out resumed.state
+./build/block_stack_headless --seed 42 --frames 1000 --state-out checkpoint.state
+./build/block_stack_headless --state-in checkpoint.state --frames 1000 --state-out resumed.state
 ```
 
 The Python API exposes the same mechanism as `Game.save_state() -> bytes` and `Game.load_state(bytes) -> State`. Cloning a Python `Game` creates another native C++ instance with the same state. `BlocksState` and the Gym raw observation also expose hidden rows and first-piece delay; they are snapshots for inspection, while the binary state is the supported format for restoring a complete simulation.
 
 ## External frame traces
 
-`project_name_verify trace.jsonl` compares an external JSON Lines trace against a fresh run. Each nonempty line must contain an integer `input` from 0 to 127. Optional expected fields are `frame`, `x`, `y`, `orientation`, `level`, `lines`, `score`, `das`, `gravity`, `piece`, and `board`. `board`, when present, is a 200-character row-major occupancy string using `.` or `0` for empty cells and any other character for occupied cells. The tool stops at the first mismatch and names the field and frame.
+`block_stack_verify trace.jsonl` compares an external JSON Lines trace against a fresh run. Each nonempty line must contain an integer `input` from 0 to 127. Optional expected fields are `frame`, `x`, `y`, `orientation`, `level`, `lines`, `score`, `das`, `gravity`, `piece`, and `board`. `board`, when present, is a 200-character row-major occupancy string using `.` or `0` for empty cells and any other character for occupied cells. The tool stops at the first mismatch and names the field and frame.
 
 ```json
 {"input": 0, "frame": 1}
 {"input": 8, "frame": 2}
 ```
 
-Use the same ruleset, mode, level, height, and seed options with `project_name_verify` as the source trace. This trace is a comparison input, not a replay file and not a substitute for a full state snapshot.
+Use the same ruleset, mode, level, height, and seed options with `block_stack_verify` as the source trace. This trace is a comparison input, not a replay file and not a substitute for a full state snapshot.

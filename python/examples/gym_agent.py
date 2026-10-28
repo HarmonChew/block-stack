@@ -1,6 +1,6 @@
 """Minimal Gymnasium agent with frame-level controller actions."""
 
-from project_name.gym import make
+from block_stack.gym import make
 
 
 def main() -> None:

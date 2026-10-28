@@ -1,6 +1,6 @@
 """Run a deterministic headless game with one controller input per frame."""
 
-from project_name import DOWN, Game, LEFT, NONE, RIGHT
+from block_stack import DOWN, Game, LEFT, NONE, RIGHT
 
 
 def main() -> None:

@@ -22,7 +22,7 @@ Controller mask per logical frame
 | Mechanics | `core/src/game.cpp`, `core/src/pieces.cpp`, `core/src/rules.cpp`, `core/src/rng.cpp` | Frame stepping, explicit rotations, level/timing constants, LFSR and B-Type board generation. |
 | Replay and snapshots | `core/include/blocks/replay.hpp`, `core/src/replay.cpp`, `core/src/game.cpp` | Input recordings, periodic hashes, full state snapshots, and deterministic verification. |
 | Language boundary | `core/include/blocks/c_api.h`, `core/src/c_api.cpp` | A dependency-free C ABI with opaque game handles and caller-owned output buffers. |
-| Python | `python/project_name/__init__.py`, `python/project_name/gym.py` | `ctypes` game wrapper, vector stepping, and optional Gymnasium spaces/rewards. |
+| Python | `python/block_stack/__init__.py`, `python/block_stack/gym.py` | `ctypes` game wrapper, vector stepping, and optional Gymnasium spaces/rewards. |
 | Tools | `tools/cli.cpp` | Headless runs, replay verification, benchmarks, RNG sampling, gravity info, and trace comparison. |
 | Desktop | `app/src/main.cpp` | Optional SDL3 client, linked to the same `blocks_core` library. |
 

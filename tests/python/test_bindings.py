@@ -9,7 +9,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "python"))
 
-from project_name import CCW, CW, DOWN, LEFT, NONE, RIGHT, Game, VectorEnv
+from block_stack import CCW, CW, DOWN, LEFT, NONE, RIGHT, Game, VectorEnv
 
 
 class GameBindingsTest(unittest.TestCase):
@@ -94,7 +94,7 @@ class GymTest(unittest.TestCase):
             import gymnasium  # noqa: F401
         except ImportError:
             self.skipTest("gymnasium optional dependency not installed")
-        from project_name.gym import make
+        from block_stack.gym import make
 
         env = make(seed=21, action_mode="bitmask", observation_mode="raw", max_frames=3)
         try:

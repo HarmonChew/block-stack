@@ -4,7 +4,7 @@ A falling-block game and deterministic AI environment inspired by the gameplay o
 
 I started this project mainly to train and test an AI that can play with NES-style button inputs, one game frame at a time. The simulation runs without a display, gives reproducible results from a seed, and can be stepped as fast as the CPU allows. I also added a playable desktop client and a few quality-of-life tools for practice and debugging.
 
-![Desktop gameplay preview](docs/preview.png)
+![Block Stack gameplay preview](docs/preview.png)
 
 ## What's included
 
@@ -24,7 +24,7 @@ You need a C++20 compiler, CMake 3.20+, and SDL3 development files (`libsdl3-dev
 cmake -S . -B build
 cmake --build build -j
 ctest --test-dir build --output-on-failure
-./build/project_name
+./build/block_stack
 ```
 
 The [controls guide](docs/controls.md) covers the desktop keys, controller buttons, and settings. The [live controller guide](docs/live-controller.md) documents `--controller-stdio` for AI-driven desktop sessions.
@@ -32,12 +32,12 @@ The [controls guide](docs/controls.md) covers the desktop keys, controller butto
 ## Run headlessly
 
 ```sh
-cmake -S . -B build-headless -DPROJECT_BUILD_APP=OFF
+cmake -S . -B build-headless -DBLOCK_STACK_BUILD_APP=OFF
 cmake --build build-headless -j
-./build-headless/project_name_headless --level 18 --seed 42 --frames 100000 --final-hash
+./build-headless/block_stack_headless --level 18 --seed 42 --frames 100000 --final-hash
 ```
 
-Headless runs do not create a window or sleep between frames. `--input-file` accepts one controller bitmask byte per frame. For Python, build with `PROJECT_BUILD_PYTHON=ON` (the default) and run:
+Headless runs do not create a window or sleep between frames. `--input-file` accepts one controller bitmask byte per frame. For Python, build with `BLOCK_STACK_BUILD_PYTHON=ON` (the default) and run:
 
 ```sh
 PYTHONPATH=python BLOCKS_NATIVE_LIB="$PWD/build-headless/libblocks_native.so" python3 python/examples/headless.py
